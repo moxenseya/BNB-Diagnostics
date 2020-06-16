@@ -1,2 +1,3 @@
 include ':app'
 rootProject.name='BNB-Diagnostics'
+include ':openCVLibrary343'
