@@ -12,10 +12,22 @@
     />
 
     <Button
-        android:id="@+id/count_cells"
+        android:id="@+id/apply_threshold"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Count Cells" />
+        android:text="Apply Threshold" />
+
+    <SeekBar
+        android:id="@+id/threshold"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content" />
+
+    <Button
+        android:id="@+id/count_cells"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:text="Count Cells"
+    />
 
     <Button
         android:id="@+id/clear_memory"
@@ -23,6 +35,14 @@
         android:layout_height="wrap_content"
         android:text="Clear Memory" />
 
+
+    <TextView
+        android:id="@+id/cell_count"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textSize="100px"
+        android:textStyle="bold"
+        android:text="Cell Count : -1" />
 
     <ImageView
         android:id="@+id/image"

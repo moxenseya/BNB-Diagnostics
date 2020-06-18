@@ -1,5 +1,6 @@
 package com.example.bnb_diagnostics;
 
+import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.FileProvider;
@@ -10,6 +11,7 @@ import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
@@ -18,14 +20,22 @@ import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
+import android.widget.SeekBar;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import org.opencv.android.BaseLoaderCallback;
 import org.opencv.android.LoaderCallbackInterface;
 import org.opencv.android.OpenCVLoader;
+import org.opencv.android.Utils;
+import org.opencv.core.Core;
+import org.opencv.core.CvType;
 import org.opencv.core.Mat;
+import org.opencv.core.Point;
+import org.opencv.core.Rect;
+import org.opencv.core.Scalar;
+import org.opencv.imgcodecs.Imgcodecs;
 import org.opencv.imgproc.Imgproc;
-
 
 import java.io.File;
 import java.io.IOException;
@@ -38,8 +48,10 @@ public class MainActivity extends AppCompatActivity {
     ImageView imageView;
     String currentPhotoPath;
     Bitmap myBitmap;
+    Mat rawImage;
     Mat matImage;
-
+    int threshold_value;
+    int cell_count_value;
     static {
         if (!OpenCVLoader.initDebug()) {
             // Handle initialization error
@@ -48,7 +60,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
-    private void deleteTempImage() {
+    private void clearBuffer() {
         File fdelete = new File(currentPhotoPath);
         if(!currentPhotoPath.equals("Not Set")) {
             if (fdelete.exists()) {
@@ -56,6 +68,10 @@ public class MainActivity extends AppCompatActivity {
                     Toast.makeText(MainActivity.this, "Deleted", Toast.LENGTH_SHORT).show();
                     resetImageView();
                     currentPhotoPath = "Not Set";
+                    if(!rawImage.empty())
+                    rawImage.release();
+                    if(!matImage.empty())
+                    matImage.release();
                 } else {
                     Toast.makeText(MainActivity.this, "Not Deleted", Toast.LENGTH_SHORT).show();
                 }
@@ -110,26 +126,70 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
+    @RequiresApi(api = Build.VERSION_CODES.O)
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+
         currentPhotoPath = "Not Set";
+        threshold_value =1;
+        cell_count_value = -1;
+
+        rawImage = new Mat();
+        matImage = new Mat();
+
+        //Setup Image View
         imageView = findViewById(R.id.image);
         resetImageView();
 
         //Check and Request Permissions if Needed
-       check_permissions();
+        check_permissions();
 
+       //Setup buttons and other UI elements
         Button capture_button = findViewById(R.id.capture_button);
-        Button count_cells = findViewById(R.id.count_cells);
+        Button apply_threshold_button = findViewById(R.id.apply_threshold);
         Button clear_memory = findViewById(R.id.clear_memory);
+        Button count_cells = findViewById(R.id.count_cells);
+
+
+        SeekBar threshold = findViewById(R.id.threshold);
+
+
+
+        //Setup Seekbar and button event listeners
+
+        threshold.setMin(1);
+        threshold.setMax(255);
+        threshold.setProgress(50);
+
+        threshold.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                threshold_value = progress;
+                threshold_image(threshold_value);
+                setImageView(currentPhotoPath);
+            }
+
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) {
+
+            }
+
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) {
+                Toast.makeText(MainActivity.this, "Threshold value set : " + threshold_value, Toast.LENGTH_SHORT).show();
+            }
+        });
+
+
 
 
         clear_memory.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                deleteTempImage();
+                clearBuffer();
             }
         });
 
@@ -140,21 +200,25 @@ public class MainActivity extends AppCompatActivity {
             }
         });
         //imageView.setRotation(90);
-        count_cells.setOnClickListener(new View.OnClickListener() {
+        apply_threshold_button.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 //Call OpenCV method and pass it the matImage obtained from the camera
                 //Toast.makeText(MainActivity.this, "Implement OpenCV Detection", Toast.LENGTH_SHORT).show();
 
-
-
                 if (!currentPhotoPath.equals("Not Set")) {
-                    matImage = imread(currentPhotoPath);
 
-                    convert_to_grayscale();
-                    imwrite(currentPhotoPath, matImage);
+                    if(rawImage.empty())
+                    {
+                        rawImage = imread(currentPhotoPath);
+                    }
+                        matImage = rawImage;
+
+                    threshold_image(threshold_value);
                     setImageView(currentPhotoPath);
-                    Toast.makeText(MainActivity.this, "Image has been loaded : " + currentPhotoPath, Toast.LENGTH_SHORT).show();
+                    Toast.makeText(MainActivity.this, "Applied Threshold : " + threshold_value, Toast.LENGTH_SHORT).show();
+                    TextView cells_count = (TextView)findViewById(R.id.cell_count);
+                    cells_count.setText("Cell Count: " + cell_count_value);
                 }
                 else
                 {
@@ -164,7 +228,54 @@ public class MainActivity extends AppCompatActivity {
 
             }
         });
+
+        count_cells.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                cell_count_value = get_cells_count();
+                setImageView(currentPhotoPath);
+            }
+        });
     }
+
+    private int get_cells_count()
+    {
+        int match_method = 0;
+        Mat base_image = imread(currentPhotoPath);
+        Mat template = new Mat();
+        try {
+            template = Utils.loadResource(this, R.drawable.template_cell, Imgcodecs.CV_LOAD_IMAGE_COLOR);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        int result_cols = base_image.cols() - base_image.cols() + 1;
+        int result_rows = template.rows() - template.rows() + 1;
+        Mat result = new Mat(result_rows, result_cols, CvType.CV_32FC1);
+
+        Imgproc.matchTemplate(base_image, template, result, match_method);
+        Core.normalize(result, result, 0, 1, Core.NORM_MINMAX, -1, new Mat());
+
+        Core.MinMaxLocResult mmr = Core.minMaxLoc(result);
+
+        Point matchLoc;
+        if (match_method == Imgproc.TM_SQDIFF || match_method == Imgproc.TM_SQDIFF_NORMED) {
+            matchLoc = mmr.minLoc;
+        } else {
+            matchLoc = mmr.maxLoc;
+        }
+
+        // / Show me what you got
+        Imgproc.rectangle(base_image, matchLoc, new Point(matchLoc.x + template.cols(),
+                matchLoc.y + template.rows()), new Scalar(0, 255, 0));
+
+        imwrite(currentPhotoPath,base_image);
+        base_image.release();
+        template.release();
+
+        return result_cols;
+    }
+
 
     private void resetImageView()
     {
@@ -187,7 +298,7 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
-    public void convert_to_grayscale() {
+    public void threshold_image(int threshold_value) {
         try {
             BitmapFactory.Options options = new BitmapFactory.Options();
             options.inDither = true;
@@ -202,10 +313,29 @@ public class MainActivity extends AppCompatActivity {
 //            Mat matImage = new Mat();
 //            Utils.bitmapToMat(image, matImage);
 
-            Mat matImageGrey = new Mat();
+            Mat grayImage = new Mat();
            // Imgproc.cvtColor(matImage, matImageGrey, Imgproc.COLOR_BGR2GRAY);
 
-            Imgproc.cvtColor(matImage, matImage, Imgproc.COLOR_BGR2GRAY);
+            Imgproc.cvtColor(matImage, grayImage, Imgproc.COLOR_BGR2GRAY);
+
+            Imgproc.threshold(grayImage, grayImage, threshold_value, 255, Imgproc.THRESH_BINARY);
+
+//foolfilled
+//            Rect rect = null;
+//            Point flood = new Point(10, 10);
+//            Scalar lowerDiff = new Scalar(10, 10, 10);
+//            Scalar upperDiff = new Scalar(10, 10, 10);
+//            Mat floodfilled = Mat.zeros(grayImage.rows() + 2, grayImage.cols() + 2, CvType.CV_8U);
+//            Imgproc.floodFill(grayImage, floodfilled, new Point(0, 0), new Scalar(255), new Rect(), new Scalar(0), new Scalar(0), 4 + (255 << 8) + Imgproc.FLOODFILL_MASK_ONLY);
+//            Core.subtract(floodfilled, Scalar.all(0), floodfilled);
+//
+//            Rect roi = new Rect(1, 1, grayImage.cols() - 2, grayImage.rows() - 2);
+//            Mat temp = new Mat();
+//            floodfilled.submat(roi).copyTo(temp);
+
+            imwrite(currentPhotoPath,grayImage);
+            grayImage.release();
+
 //            Params params = new Params();
 //            params.set_filterByConvexity(true);
 //            params.set_minConvexity(0.2f);
@@ -290,6 +420,8 @@ public class MainActivity extends AppCompatActivity {
         if (requestCode == REQUEST_IMAGE_CAPTURE && resultCode == RESULT_OK) {
             try{
                 if(!currentPhotoPath.equals("Not Set"))
+                    rawImage = imread(currentPhotoPath);
+                    imwrite(currentPhotoPath,rawImage);
                     setImageView(currentPhotoPath);
             }
             catch(Exception e)
