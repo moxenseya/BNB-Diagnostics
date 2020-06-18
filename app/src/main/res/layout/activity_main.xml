@@ -17,6 +17,13 @@
         android:layout_height="wrap_content"
         android:text="Count Cells" />
 
+    <Button
+        android:id="@+id/clear_memory"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Clear Memory" />
+
+
     <ImageView
         android:id="@+id/image"
         android:layout_width="wrap_content"

@@ -2,79 +2,184 @@ package com.example.bnb_diagnostics;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.FileProvider;
-import androidx.core.content.res.ResourcesCompat;
 
-import android.content.Context;
 import android.content.Intent;
-import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
-import android.hardware.Camera;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
 import android.provider.MediaStore;
 import android.util.Log;
-import android.view.SurfaceHolder;
-import android.view.SurfaceView;
 import android.view.View;
 import android.widget.Button;
-import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.Toast;
 
 import org.opencv.android.BaseLoaderCallback;
 import org.opencv.android.LoaderCallbackInterface;
 import org.opencv.android.OpenCVLoader;
-import org.opencv.android.Utils;
-import org.opencv.core.CvType;
+import org.opencv.core.KeyPoint;
 import org.opencv.core.Mat;
+import org.opencv.core.MatOfKeyPoint;
+import org.opencv.imgproc.Imgproc;
 
 
 import java.io.File;
 import java.io.IOException;
-import java.text.SimpleDateFormat;
-import java.util.Date;
 
 import static org.opencv.imgcodecs.Imgcodecs.imread;
+import static org.opencv.imgcodecs.Imgcodecs.imwrite;
 
 public class MainActivity extends AppCompatActivity {
 
     ImageView imageView;
     String currentPhotoPath;
     Bitmap myBitmap;
+    Mat matImage;
 
     static {
         if (!OpenCVLoader.initDebug()) {
             // Handle initialization error
-            Log.d("OpenCV","OpenCV not loaded");
+            Log.d("OpenCV", "OpenCV not loaded");
         }
+    }
+
+
+    private void deleteTempImage() {
+        File fdelete = new File(currentPhotoPath);
+        if(!currentPhotoPath.equals("Not Set")) {
+            if (fdelete.exists()) {
+                if (fdelete.delete()) {
+                    Toast.makeText(MainActivity.this, "Deleted", Toast.LENGTH_SHORT).show();
+                    resetImageView();
+                    currentPhotoPath = "Not Set";
+                } else {
+                    Toast.makeText(MainActivity.this, "Not Deleted", Toast.LENGTH_SHORT).show();
+                }
+            }
+        }
+        else
+        {
+            Toast.makeText(this, "Buffer is empty, nothing to delete", Toast.LENGTH_SHORT).show();
+        }
+
     }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        currentPhotoPath = "";
+        currentPhotoPath = "Not Set";
         imageView = findViewById(R.id.image);
+        resetImageView();
 
         Button capture_button = findViewById(R.id.capture_button);
         Button count_cells = findViewById(R.id.count_cells);
+        Button clear_memory = findViewById(R.id.clear_memory);
+
+
+        clear_memory.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                deleteTempImage();
+            }
+        });
+
         capture_button.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 dispatchTakePictureIntent();
             }
         });
-        imageView.setRotation(90);
+        //imageView.setRotation(90);
         count_cells.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                //Call OpenCV method and pass it the image obtained from the camera
-                Toast.makeText(MainActivity.this, "Implement OpenCV Detection", Toast.LENGTH_SHORT).show();
+                //Call OpenCV method and pass it the matImage obtained from the camera
+                //Toast.makeText(MainActivity.this, "Implement OpenCV Detection", Toast.LENGTH_SHORT).show();
+
+
+
+                if (!currentPhotoPath.equals("Not Set")) {
+                    matImage = imread(currentPhotoPath);
+
+                    convert_to_grayscale();
+                    imwrite(currentPhotoPath, matImage);
+                    setImageView(currentPhotoPath);
+                    Toast.makeText(MainActivity.this, "Image has been loaded : " + currentPhotoPath, Toast.LENGTH_SHORT).show();
+                }
+                else
+                {
+                    Toast.makeText(MainActivity.this, "Image buffer empty, take a picture!", Toast.LENGTH_SHORT).show();
+                }
+
+
             }
         });
     }
+
+    private void resetImageView()
+    {
+        if(imageView!=null)
+            imageView.setImageDrawable(getResources().getDrawable(R.drawable.placeholder));
+    }
+
+    private void setImageView(String path)
+    {
+        if(imageView!=null) {
+             if(!path.equals("Not Set")) {
+                 myBitmap = BitmapFactory.decodeFile(path);
+                 imageView.setImageBitmap(myBitmap);
+             }
+                else
+            {
+                resetImageView();
+            }
+        }
+
+    }
+
+    public void convert_to_grayscale() {
+        try {
+            BitmapFactory.Options options = new BitmapFactory.Options();
+            options.inDither = true;
+            options.inPreferredConfig = Bitmap.Config.ARGB_8888;
+
+//            byte[] decodedString = Base64.decode(imageAsBase64, Base64.DEFAULT);
+//            Bitmap image = BitmapFactory.decodeByteArray(decodedString, 0, decodedString.length);
+//
+//
+////      Bitmap image = decodeSampledBitmapFromFile(imageurl, 2000, 2000);
+//            int l = CvType.CV_8UC1; //8-bit grey scale image
+//            Mat matImage = new Mat();
+//            Utils.bitmapToMat(image, matImage);
+
+            Mat matImageGrey = new Mat();
+           // Imgproc.cvtColor(matImage, matImageGrey, Imgproc.COLOR_BGR2GRAY);
+
+            Imgproc.cvtColor(matImage, matImage, Imgproc.COLOR_BGR2GRAY);
+//            Params params = new Params();
+//            params.set_filterByConvexity(true);
+//            params.set_minConvexity(0.2f);
+//            params.set_maxConvexity(1.0f);
+//            params.set_minThreshold(1);
+//            params.set_maxThreshold(255);
+            //SimpleBlobDetector detector = SimpleBlobDetector.create();
+
+            //MatOfKeyPoint keypoint = new MatOfKeyPoint();
+
+            //detector.detect(matImageGrey, keypoint);
+
+
+
+            //KeyPoint[] vals = keypoint.toArray();
+            //successCallback.invoke( "Cell Count : " + vals.length);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
 
 
     private BaseLoaderCallback mLoaderCallback = new BaseLoaderCallback(this) {
@@ -137,9 +242,8 @@ public class MainActivity extends AppCompatActivity {
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         if (requestCode == REQUEST_IMAGE_CAPTURE && resultCode == RESULT_OK) {
             try{
-                if(!currentPhotoPath.equals(""))
-                    myBitmap = BitmapFactory.decodeFile(currentPhotoPath);
-                imageView.setImageBitmap(myBitmap);
+                if(!currentPhotoPath.equals("Not Set"))
+                    setImageView(currentPhotoPath);
             }
             catch(Exception e)
             {
@@ -149,7 +253,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private File createImageFile() throws IOException {
-        // Create an image file name
+        // Create an matImage file name
         //String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
         //String imageFileName = "JPEG_" + timeStamp + "_";
         String imageFileName = "Raw_Image";

@@ -90,7 +90,7 @@ public class ColorBlobDetector {
                 maxArea = area;
         }
 
-        // Filter contours by area and resize to fit the original image size
+        // Filter contours by area and resize to fit the original matImage size
         mContours.clear();
         each = contours.iterator();
         while (each.hasNext()) {
