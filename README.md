@@ -14,3 +14,6 @@ Tasks
 
 - [ ] Display detected cell coordinates
 - [ ] Add weighted average cell template
+- [ ] Add an app tour for first time users
+- [ ] Replace placeholder image for buffer area
+- [ ] Add color indicator for feedback
