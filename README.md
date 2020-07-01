@@ -11,9 +11,8 @@ Tasks
 - [x] Write and save to disk
 - [x] Add Threshold filter and slider for adjustment
 - [x] Implement naive template matching algorithm
-
+- [ ] Add an app tour for first time users
 - [ ] Display detected cell coordinates
 - [ ] Add weighted average cell template
-- [ ] Add an app tour for first time users
 - [ ] Replace placeholder image for buffer area
 - [ ] Add color indicator for feedback
