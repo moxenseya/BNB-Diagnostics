@@ -23,6 +23,7 @@ import android.widget.ImageView;
 import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.Toast;
+import android.app.Fragment;
 
 import org.opencv.android.BaseLoaderCallback;
 import org.opencv.android.LoaderCallbackInterface;
@@ -30,10 +31,15 @@ import org.opencv.android.OpenCVLoader;
 import org.opencv.android.Utils;
 import org.opencv.core.Core;
 import org.opencv.core.CvType;
+import org.opencv.core.KeyPoint;
 import org.opencv.core.Mat;
+import org.opencv.core.MatOfKeyPoint;
 import org.opencv.core.Point;
 import org.opencv.core.Rect;
 import org.opencv.core.Scalar;
+//import org.opencv.features2d.FeatureDetector;
+import org.opencv.features2d.SimpleBlobDetector;
+import org.opencv.features2d.SimpleBlobDetector_Params;
 import org.opencv.imgcodecs.Imgcodecs;
 import org.opencv.imgproc.Imgproc;
 
@@ -244,7 +250,7 @@ public class MainActivity extends AppCompatActivity {
         Mat base_image = imread(currentPhotoPath);
         Mat template = new Mat();
         try {
-            template = Utils.loadResource(this, R.drawable.template_cell, Imgcodecs.CV_LOAD_IMAGE_COLOR);
+            template = Utils.loadResource(this, R.drawable.template_cell, 1);
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -334,23 +340,25 @@ public class MainActivity extends AppCompatActivity {
 //            floodfilled.submat(roi).copyTo(temp);
 
             imwrite(currentPhotoPath,grayImage);
-            grayImage.release();
-
-//            Params params = new Params();
+            //grayImage.release();
+            SimpleBlobDetector_Params params = new SimpleBlobDetector_Params();
 //            params.set_filterByConvexity(true);
 //            params.set_minConvexity(0.2f);
 //            params.set_maxConvexity(1.0f);
 //            params.set_minThreshold(1);
 //            params.set_maxThreshold(255);
-            //SimpleBlobDetector detector = SimpleBlobDetector.create();
+            params.set_filterByCircularity(true);
+            params.set_minCircularity(0.5f);
+            SimpleBlobDetector detector = SimpleBlobDetector.create(params);
 
-            //MatOfKeyPoint keypoint = new MatOfKeyPoint();
+            MatOfKeyPoint keypoint = new MatOfKeyPoint();
 
-            //detector.detect(matImageGrey, keypoint);
+            detector.detect(grayImage, keypoint);
 
+            KeyPoint[] vals = keypoint.toArray();
 
+            Log.i("SimpleBlobDetector", "SBD Cell count: " + vals.length);
 
-            //KeyPoint[] vals = keypoint.toArray();
             //successCallback.invoke( "Cell Count : " + vals.length);
         } catch (Exception e) {
             e.printStackTrace();
