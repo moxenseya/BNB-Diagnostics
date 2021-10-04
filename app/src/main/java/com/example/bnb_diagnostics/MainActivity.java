@@ -19,6 +19,7 @@ import android.provider.MediaStore;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
+import android.widget.CheckBox;
 import android.widget.ImageView;
 import android.widget.SeekBar;
 import android.widget.TextView;
@@ -58,6 +59,30 @@ public class MainActivity extends AppCompatActivity {
     Mat matImage;
     int threshold_value;
     int cell_count_value;
+
+    int minThresholdValue;
+    int maxThresholdValue;
+    int minAreaValue;
+    float minCircularityValue;
+    float minConvexityValue;
+    float minInertiaRatioValue;
+
+    SeekBar minThresholdVal;
+    SeekBar maxThresholdVal;
+    SeekBar filterByAreaVal;
+    SeekBar filterByCircularityVal;
+    SeekBar filterByConvexityVal;
+    SeekBar filterByInertiaVal;
+
+    CheckBox minThresholdBtn;
+    CheckBox maxThresholdBtn;
+    CheckBox filterByAreaBtn;
+    CheckBox filterByCircularityBtn;
+    CheckBox filterByConvexityBtn;
+    CheckBox filterByInertiaBtn;
+
+    TextView cells_count;
+
     static {
         if (!OpenCVLoader.initDebug()) {
             // Handle initialization error
@@ -68,25 +93,25 @@ public class MainActivity extends AppCompatActivity {
 
     private void clearBuffer() {
         File fdelete = new File(currentPhotoPath);
-        if(!currentPhotoPath.equals("Not Set")) {
+        if (!currentPhotoPath.equals("Not Set")) {
             if (fdelete.exists()) {
                 if (fdelete.delete()) {
                     Toast.makeText(MainActivity.this, "Deleted", Toast.LENGTH_SHORT).show();
                     resetImageView();
                     currentPhotoPath = "Not Set";
-                    if(!rawImage.empty())
-                    rawImage.release();
-                    if(!matImage.empty())
-                    matImage.release();
+                    if (!rawImage.empty())
+                        rawImage.release();
+                    if (!matImage.empty())
+                        matImage.release();
                 } else {
                     Toast.makeText(MainActivity.this, "Not Deleted", Toast.LENGTH_SHORT).show();
                 }
             }
-        }
-        else
-        {
+        } else {
             Toast.makeText(this, "Buffer is empty, nothing to delete", Toast.LENGTH_SHORT).show();
         }
+
+        cells_count.setText("Cell Count: -1");
 
     }
 
@@ -124,12 +149,76 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    private void check_permissions()
-    {
+    private void check_permissions() {
         ActivityCompat.requestPermissions(MainActivity.this,
-                new String[]{Manifest.permission.READ_EXTERNAL_STORAGE, Manifest.permission.WRITE_EXTERNAL_STORAGE ,Manifest.permission.CAMERA},
+                new String[]{Manifest.permission.READ_EXTERNAL_STORAGE, Manifest.permission.WRITE_EXTERNAL_STORAGE, Manifest.permission.CAMERA},
                 1);
 
+    }
+
+    // Checkbox Handlers
+
+    public void onCheckboxClicked(View view) {
+        // Is the view now checked?
+        boolean checked = ((CheckBox) view).isChecked();
+
+        // Check which checkbox was clicked
+        switch (view.getId()) {
+            case R.id.minThresholdBtn:
+                if (checked) {
+                    minThresholdVal.setVisibility(View.VISIBLE);
+                } else {
+                    minThresholdVal.setVisibility(View.INVISIBLE);
+                    minThresholdVal.setProgress(0);
+                    minThresholdValue = 0;
+                }
+                break;
+            case R.id.maxThresholdBtn:
+                if (checked) {
+                    maxThresholdVal.setVisibility(View.VISIBLE);
+                } else {
+                    maxThresholdVal.setVisibility(View.INVISIBLE);
+                    maxThresholdVal.setProgress(0);
+                    maxThresholdValue = 0;
+                }
+                break;
+            case R.id.filterByAreaBtn:
+                if (checked) {
+                    filterByAreaVal.setVisibility(View.VISIBLE);
+                } else {
+                    filterByAreaVal.setVisibility(View.INVISIBLE);
+                    filterByAreaVal.setProgress(0);
+                    minAreaValue = 0;
+                }
+                break;
+            case R.id.filterByCircularityBtn:
+                if (checked) {
+                    filterByCircularityVal.setVisibility(View.VISIBLE);
+                } else {
+                    filterByCircularityVal.setVisibility(View.INVISIBLE);
+                    filterByCircularityVal.setProgress(0);
+                    minCircularityValue = 0.f;
+                }
+                break;
+            case R.id.filterByConvexityBtn:
+                if (checked) {
+                    filterByConvexityVal.setVisibility(View.VISIBLE);
+                } else {
+                    filterByConvexityVal.setVisibility(View.INVISIBLE);
+                    filterByConvexityVal.setProgress(0);
+                    minConvexityValue = 0.f;
+                }
+                break;
+            case R.id.filterByInertiaBtn:
+                if (checked) {
+                    filterByInertiaVal.setVisibility(View.VISIBLE);
+                } else {
+                    filterByInertiaVal.setVisibility(View.INVISIBLE);
+                    filterByInertiaVal.setProgress(0);
+                    minInertiaRatioValue = 0.f;
+                }
+                break;
+        }
     }
 
     @RequiresApi(api = Build.VERSION_CODES.O)
@@ -140,7 +229,7 @@ public class MainActivity extends AppCompatActivity {
 
 
         currentPhotoPath = "Not Set";
-        threshold_value =1;
+        threshold_value = 1;
         cell_count_value = -1;
 
         rawImage = new Mat();
@@ -153,43 +242,157 @@ public class MainActivity extends AppCompatActivity {
         //Check and Request Permissions if Needed
         check_permissions();
 
-       //Setup buttons and other UI elements
+        //Setup buttons and other UI elements
         Button capture_button = findViewById(R.id.capture_button);
-        Button apply_threshold_button = findViewById(R.id.apply_threshold);
+        //Button apply_threshold_button = findViewById(R.id.apply_threshold);
         Button clear_memory = findViewById(R.id.clear_memory);
         Button count_cells = findViewById(R.id.count_cells);
 
+        cells_count = (TextView)findViewById(R.id.cell_count); // Text to display cells counted result
 
-        SeekBar threshold = findViewById(R.id.threshold);
+        minThresholdBtn = findViewById(R.id.minThresholdBtn);
+        maxThresholdBtn = findViewById(R.id.maxThresholdBtn);
+        filterByAreaBtn = findViewById(R.id.filterByAreaBtn);
+        filterByCircularityBtn = findViewById(R.id.filterByCircularityBtn);
+        filterByConvexityBtn = findViewById(R.id.filterByConvexityBtn);
+        filterByInertiaBtn = findViewById(R.id.filterByInertiaBtn);
 
 
+        minThresholdVal = findViewById(R.id.minThresholdVal);
+        maxThresholdVal = findViewById(R.id.maxThresholdVal);
+        filterByAreaVal = findViewById(R.id.filterByAreaVal);
+        filterByCircularityVal = findViewById(R.id.filterByCircularityVal);
+        filterByConvexityVal = findViewById(R.id.filterByConvexityVal);
+        filterByInertiaVal = findViewById(R.id.filterByInertiaVal);
 
-        //Setup Seekbar and button event listeners
+        // SeekBar Handlers
 
-        threshold.setMin(1);
-        threshold.setMax(255);
-        threshold.setProgress(50);
-
-        threshold.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+        minThresholdVal.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
-            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                threshold_value = progress;
-                threshold_image(threshold_value);
-                setImageView(currentPhotoPath);
+            public void onProgressChanged(SeekBar seekBar, int i, boolean b) {
+                minThresholdValue = i;
             }
 
             @Override
             public void onStartTrackingTouch(SeekBar seekBar) {
-
+                // Not implemented
             }
 
             @Override
             public void onStopTrackingTouch(SeekBar seekBar) {
-                Toast.makeText(MainActivity.this, "Threshold value set : " + threshold_value, Toast.LENGTH_SHORT).show();
+                // Not implemented
             }
         });
 
+        maxThresholdVal.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int i, boolean b) {
+                maxThresholdValue = i;
+            }
 
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) {
+                // Not implemented
+            }
+
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) {
+                // Not implemented
+            }
+        });
+
+        filterByAreaVal.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int i, boolean b) {
+                minAreaValue = i;
+            }
+
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) {
+                // Not implemented
+            }
+
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) {
+                // Not implemented
+            }
+        });
+
+        filterByCircularityVal.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int i, boolean b) {
+                minCircularityValue = (float) i / 100;
+            }
+
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) {
+                // Not implemented
+            }
+
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) {
+                // Not implemented
+            }
+        });
+
+        filterByConvexityVal.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int i, boolean b) {
+                minConvexityValue = (float) i / 100;
+            }
+
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) {
+                // Not implemented
+            }
+
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) {
+                // Not implemented
+            }
+        });
+
+        filterByInertiaVal.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int i, boolean b) {
+                minInertiaRatioValue = (float) i / 100;
+            }
+
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) {
+                // Not implemented
+            }
+
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) {
+                // Not implemented
+            }
+        });
+
+        //Setup Seekbar and button event listeners
+
+//        threshold.setMin(1);
+//        threshold.setMax(255);
+//        threshold.setProgress(50);
+//
+//        threshold.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+//            @Override
+//            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+//                threshold_value = progress;
+//                threshold_image(threshold_value);
+//                setImageView(currentPhotoPath);
+//            }
+//
+//            @Override
+//            public void onStartTrackingTouch(SeekBar seekBar) {
+//
+//            }
+//
+//            @Override
+//            public void onStopTrackingTouch(SeekBar seekBar) {
+//                Toast.makeText(MainActivity.this, "Threshold value set : " + threshold_value, Toast.LENGTH_SHORT).show();
+//            }
+//        });
 
 
         clear_memory.setOnClickListener(new View.OnClickListener() {
@@ -206,34 +409,36 @@ public class MainActivity extends AppCompatActivity {
             }
         });
         //imageView.setRotation(90);
-        apply_threshold_button.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                //Call OpenCV method and pass it the matImage obtained from the camera
-                //Toast.makeText(MainActivity.this, "Implement OpenCV Detection", Toast.LENGTH_SHORT).show();
 
-                if (!currentPhotoPath.equals("Not Set")) {
-
-                    if(rawImage.empty())
-                    {
-                        rawImage = imread(currentPhotoPath);
-                    }
-                        matImage = rawImage;
-
-                    threshold_image(threshold_value);
-                    setImageView(currentPhotoPath);
-                    Toast.makeText(MainActivity.this, "Applied Threshold : " + threshold_value, Toast.LENGTH_SHORT).show();
-                    TextView cells_count = (TextView)findViewById(R.id.cell_count);
-                    cells_count.setText("Cell Count: " + cell_count_value);
-                }
-                else
-                {
-                    Toast.makeText(MainActivity.this, "Image buffer empty, take a picture!", Toast.LENGTH_SHORT).show();
-                }
-
-
-            }
-        });
+        // TODO Use this for setting image after drawing bounding boxes on the detected cells
+//        apply_threshold_button.setOnClickListener(new View.OnClickListener() {
+//            @Override
+//            public void onClick(View v) {
+//                //Call OpenCV method and pass it the matImage obtained from the camera
+//                //Toast.makeText(MainActivity.this, "Implement OpenCV Detection", Toast.LENGTH_SHORT).show();
+//
+//                if (!currentPhotoPath.equals("Not Set")) {
+//
+//                    if(rawImage.empty())
+//                    {
+//                        rawImage = imread(currentPhotoPath);
+//                    }
+//                        matImage = rawImage;
+//
+//                    threshold_image(threshold_value);
+//                    setImageView(currentPhotoPath);
+//                    Toast.makeText(MainActivity.this, "Applied Threshold : " + threshold_value, Toast.LENGTH_SHORT).show();
+//                    TextView cells_count = (TextView)findViewById(R.id.cell_count);
+//                    cells_count.setText("Cell Count: " + cell_count_value);
+//                }
+//                else
+//                {
+//                    Toast.makeText(MainActivity.this, "Image buffer empty, take a picture!", Toast.LENGTH_SHORT).show();
+//                }
+//
+//
+//            }
+//        });
 
         count_cells.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -244,60 +449,118 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
-    private int get_cells_count()
-    {
-        int match_method = 0;
-        Mat base_image = imread(currentPhotoPath);
-        Mat template = new Mat();
-        try {
-            template = Utils.loadResource(this, R.drawable.template_cell, 1);
-        } catch (IOException e) {
-            e.printStackTrace();
+    private int get_cells_count() {
+
+        // Old template matching code
+
+//        int match_method = 0;
+//        Mat base_image = imread(currentPhotoPath);
+//        Mat template = new Mat();
+//        try {
+//            template = Utils.loadResource(this, R.drawable.template_cell, 1);
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//        }
+//
+//        int result_cols = base_image.cols() - base_image.cols() + 1;
+//        int result_rows = template.rows() - template.rows() + 1;
+//        Mat result = new Mat(result_rows, result_cols, CvType.CV_32FC1);
+//
+//        Imgproc.matchTemplate(base_image, template, result, match_method);
+//        Core.normalize(result, result, 0, 1, Core.NORM_MINMAX, -1, new Mat());
+//
+//        Core.MinMaxLocResult mmr = Core.minMaxLoc(result);
+//
+//        Point matchLoc;
+//        if (match_method == Imgproc.TM_SQDIFF || match_method == Imgproc.TM_SQDIFF_NORMED) {
+//            matchLoc = mmr.minLoc;
+//        } else {
+//            matchLoc = mmr.maxLoc;
+//        }
+//
+//        // / Show me what you got
+//        Imgproc.rectangle(base_image, matchLoc, new Point(matchLoc.x + template.cols(),
+//                matchLoc.y + template.rows()), new Scalar(0, 255, 0));
+//
+//        imwrite(currentPhotoPath, base_image);
+//        base_image.release();
+//        template.release();
+//
+//        return result_cols;
+
+        // TODO New SimpleBlobDetector mode
+
+
+        // Get param values
+        SimpleBlobDetector_Params params = new SimpleBlobDetector_Params();
+
+        if(minThresholdBtn.isChecked())
+        {
+            params.set_minThreshold(minThresholdValue);
         }
 
-        int result_cols = base_image.cols() - base_image.cols() + 1;
-        int result_rows = template.rows() - template.rows() + 1;
-        Mat result = new Mat(result_rows, result_cols, CvType.CV_32FC1);
-
-        Imgproc.matchTemplate(base_image, template, result, match_method);
-        Core.normalize(result, result, 0, 1, Core.NORM_MINMAX, -1, new Mat());
-
-        Core.MinMaxLocResult mmr = Core.minMaxLoc(result);
-
-        Point matchLoc;
-        if (match_method == Imgproc.TM_SQDIFF || match_method == Imgproc.TM_SQDIFF_NORMED) {
-            matchLoc = mmr.minLoc;
-        } else {
-            matchLoc = mmr.maxLoc;
+        if(maxThresholdBtn.isChecked())
+        {
+            params.set_maxThreshold(maxThresholdValue);
         }
 
-        // / Show me what you got
-        Imgproc.rectangle(base_image, matchLoc, new Point(matchLoc.x + template.cols(),
-                matchLoc.y + template.rows()), new Scalar(0, 255, 0));
+        if(filterByAreaBtn.isChecked())
+        {
+            params.set_filterByArea(true);
+            params.set_minArea(minAreaValue);
+        }
 
-        imwrite(currentPhotoPath,base_image);
-        base_image.release();
-        template.release();
+        if(filterByCircularityBtn.isChecked())
+        {
+            params.set_filterByCircularity(true);
+            params.set_minCircularity(minCircularityValue);
+        }
 
-        return result_cols;
+        if(filterByConvexityBtn.isChecked())
+        {
+            params.set_filterByConvexity(true);
+            params.set_minConvexity(minConvexityValue);
+        }
+
+        if(filterByInertiaBtn.isChecked())
+        {
+            params.set_filterByInertia(true);
+            params.set_minInertiaRatio(minInertiaRatioValue);
+        }
+
+        // Detect
+        SimpleBlobDetector detector = SimpleBlobDetector.create(params);
+
+        MatOfKeyPoint keypoint = new MatOfKeyPoint();
+
+        detector.detect(rawImage, keypoint); // TODO is this the right image?
+
+        KeyPoint[] vals = keypoint.toArray();
+
+        // Set outputs
+        Log.i("SimpleBlobDetector", "SBD Cell count: " + vals.length);
+        cells_count.setText("Cell Count: " + vals.length);
+
+
+        // Draw on image
+        // Save to disk
+        // Change to updated image
+
+        return 0;
     }
 
 
-    private void resetImageView()
-    {
-        if(imageView!=null)
+    private void resetImageView() {
+        if (imageView != null)
             imageView.setImageDrawable(getResources().getDrawable(R.drawable.placeholder));
     }
 
-    private void setImageView(String path)
-    {
-        if(imageView!=null) {
-             if(!path.equals("Not Set")) {
-                 myBitmap = BitmapFactory.decodeFile(path);
-                 imageView.setImageBitmap(myBitmap);
-             }
-                else
-            {
+    private void setImageView(String path) {
+        if (imageView != null) {
+            if (!path.equals("Not Set")) {
+                myBitmap = BitmapFactory.decodeFile(path);
+                imageView.setImageBitmap(myBitmap);
+            } else {
                 resetImageView();
             }
         }
@@ -320,7 +583,7 @@ public class MainActivity extends AppCompatActivity {
 //            Utils.bitmapToMat(image, matImage);
 
             Mat grayImage = new Mat();
-           // Imgproc.cvtColor(matImage, matImageGrey, Imgproc.COLOR_BGR2GRAY);
+            // Imgproc.cvtColor(matImage, matImageGrey, Imgproc.COLOR_BGR2GRAY);
 
             Imgproc.cvtColor(matImage, grayImage, Imgproc.COLOR_BGR2GRAY);
 
@@ -339,7 +602,7 @@ public class MainActivity extends AppCompatActivity {
 //            Mat temp = new Mat();
 //            floodfilled.submat(roi).copyTo(temp);
 
-            imwrite(currentPhotoPath,grayImage);
+            imwrite(currentPhotoPath, grayImage);
             //grayImage.release();
             SimpleBlobDetector_Params params = new SimpleBlobDetector_Params();
 //            params.set_filterByConvexity(true);
@@ -366,26 +629,24 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
-
     private BaseLoaderCallback mLoaderCallback = new BaseLoaderCallback(this) {
         @Override
         public void onManagerConnected(int status) {
             switch (status) {
-                case LoaderCallbackInterface.SUCCESS:
-                {
+                case LoaderCallbackInterface.SUCCESS: {
                     Log.i("OpenCV", "OpenCV loaded successfully");
-                } break;
-                default:
-                {
+                }
+                break;
+                default: {
                     super.onManagerConnected(status);
-                } break;
+                }
+                break;
             }
         }
     };
 
 
-    public void onResume()
-    {
+    public void onResume() {
         super.onResume();
         if (!OpenCVLoader.initDebug()) {
             Log.d("OpenCV", "Internal OpenCV library not found. Using OpenCV Manager for initialization");
@@ -426,14 +687,12 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         if (requestCode == REQUEST_IMAGE_CAPTURE && resultCode == RESULT_OK) {
-            try{
-                if(!currentPhotoPath.equals("Not Set"))
+            try {
+                if (!currentPhotoPath.equals("Not Set"))
                     rawImage = imread(currentPhotoPath);
-                    imwrite(currentPhotoPath,rawImage);
-                    setImageView(currentPhotoPath);
-            }
-            catch(Exception e)
-            {
+                imwrite(currentPhotoPath, rawImage);
+                setImageView(currentPhotoPath);
+            } catch (Exception e) {
                 e.printStackTrace();
             }
         }

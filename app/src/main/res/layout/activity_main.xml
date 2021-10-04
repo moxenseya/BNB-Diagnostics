@@ -4,37 +4,155 @@
     android:layout_width="fill_parent"
     android:layout_height="fill_parent"
     >
-<Button
-    android:id="@+id/capture_button"
-    android:layout_width="wrap_content"
-    android:layout_height="wrap_content"
-    android:text="Take an Image"
-    />
 
-    <Button
-        android:id="@+id/apply_threshold"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Apply Threshold" />
-
-    <SeekBar
-        android:id="@+id/threshold"
+    <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content" />
-
-    <Button
-        android:id="@+id/count_cells"
-    android:layout_width="wrap_content"
-    android:layout_height="wrap_content"
-    android:text="Count Cells"
-    />
-
-    <Button
-        android:id="@+id/clear_memory"
-        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Clear Memory" />
+        android:orientation="horizontal">
 
+        <Button
+            android:id="@+id/capture_button"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Take an Image" />
+
+        <Button
+            android:id="@+id/clear_memory"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Clear Memory" />
+
+        <Button
+            android:id="@+id/count_cells"
+            android:layout_width="155dp"
+            android:layout_height="wrap_content"
+            android:text="Detect Cells" />
+
+    </LinearLayout>
+
+
+    <TableLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:stretchColumns="1"
+        >
+
+        <TableRow
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" >
+
+            <CheckBox
+                android:id="@+id/minThresholdBtn"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Min Threshold"
+                android:onClick="onCheckboxClicked" />
+
+            <SeekBar
+                android:id="@+id/minThresholdVal"
+                android:layout_width="fill_parent"
+                android:layout_height="match_parent"
+                android:max="255"
+                android:visibility="invisible" />
+
+        </TableRow>
+
+        <TableRow
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" >
+
+            <CheckBox
+                android:id="@+id/maxThresholdBtn"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Max Threshold"
+                android:onClick="onCheckboxClicked" />
+
+            <SeekBar
+                android:id="@+id/maxThresholdVal"
+                android:layout_width="fill_parent"
+                android:layout_height="match_parent"
+                android:max="255"
+                android:visibility="invisible" />
+
+        </TableRow>
+
+        <TableRow
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" >
+
+            <CheckBox
+                android:id="@+id/filterByAreaBtn"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Filter By Area"
+                android:onClick="onCheckboxClicked" />
+
+            <SeekBar
+                android:id="@+id/filterByAreaVal"
+                android:layout_width="fill_parent"
+                android:layout_height="match_parent"
+                android:max="1000"
+                android:visibility="invisible" />
+        </TableRow>
+
+        <TableRow
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" >
+
+            <CheckBox
+                android:id="@+id/filterByCircularityBtn"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Filter By Circularity"
+                android:onClick="onCheckboxClicked" />
+
+            <SeekBar
+                android:id="@+id/filterByCircularityVal"
+                android:layout_width="fill_parent"
+                android:layout_height="match_parent"
+                android:max="100"
+                android:visibility="invisible" />
+        </TableRow>
+
+        <TableRow
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" >
+
+            <CheckBox
+                android:id="@+id/filterByConvexityBtn"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Filter By Convexity"
+                android:onClick="onCheckboxClicked" />
+
+            <SeekBar
+                android:id="@+id/filterByConvexityVal"
+                android:layout_width="fill_parent"
+                android:layout_height="match_parent"
+                android:max="100"
+                android:visibility="invisible" />
+        </TableRow>
+
+        <TableRow
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" >
+
+            <CheckBox
+                android:id="@+id/filterByInertiaBtn"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Filter By Inertia"
+                android:onClick="onCheckboxClicked" />
+
+            <SeekBar
+                android:id="@+id/filterByInertiaVal"
+                android:layout_width="fill_parent"
+                android:layout_height="match_parent"
+                android:max="100"
+                android:visibility="invisible" />
+        </TableRow>
+    </TableLayout>
 
     <TextView
         android:id="@+id/cell_count"
