@@ -92,7 +92,7 @@
                 android:id="@+id/filterByAreaVal"
                 android:layout_width="fill_parent"
                 android:layout_height="match_parent"
-                android:max="1000"
+                android:max="10000"
                 android:visibility="invisible" />
         </TableRow>
 

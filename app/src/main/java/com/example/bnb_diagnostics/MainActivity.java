@@ -56,9 +56,10 @@ public class MainActivity extends AppCompatActivity {
 
     ImageView imageView;
     String currentPhotoPath;
+    String currentPhotoPathMarked;
     Bitmap myBitmap;
     Mat rawImage;
-    Mat matImage;
+
     int threshold_value;
     int cell_count_value;
 
@@ -98,23 +99,37 @@ public class MainActivity extends AppCompatActivity {
         if (!currentPhotoPath.equals("Not Set")) {
             if (fdelete.exists()) {
                 if (fdelete.delete()) {
-                    Toast.makeText(MainActivity.this, "Deleted", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(MainActivity.this, "Buffer cleaned", Toast.LENGTH_SHORT).show();
                     resetImageView();
                     currentPhotoPath = "Not Set";
                     if (!rawImage.empty())
                         rawImage.release();
-                    if (!matImage.empty())
-                        matImage.release();
+
                 } else {
-                    Toast.makeText(MainActivity.this, "Not Deleted", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(MainActivity.this, "Failed to clean buffer", Toast.LENGTH_SHORT).show();
                 }
             }
         } else {
-            Toast.makeText(this, "Buffer is empty, nothing to delete", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "Image buffer is empty, nothing to delete", Toast.LENGTH_SHORT).show();
         }
 
-        cells_count.setText("Cell Count: -1");
+        File fdeleteMarked = new File(currentPhotoPathMarked);
+        if (!currentPhotoPathMarked.equals("Not Set")) {
+            if (fdeleteMarked.exists()) {
+                if (fdeleteMarked.delete()) {
+                    Toast.makeText(MainActivity.this, "Marked buffer cleaned", Toast.LENGTH_SHORT).show();
+                    resetImageView();
+                    currentPhotoPathMarked = "Not Set";
+                    if (!rawImage.empty())
+                        rawImage.release();
 
+                } else {
+                    Toast.makeText(MainActivity.this, "Failed to clean marked buffer", Toast.LENGTH_SHORT).show();
+                }
+            }
+        } else {
+            Toast.makeText(this, "Marked buffer is empty, nothing to delete", Toast.LENGTH_SHORT).show();
+        }
     }
 
     public void onRequestPermissionsResult(int requestCode,
@@ -223,6 +238,12 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        clearBuffer(); // Cleanup any existing files before shutdown
+    }
+
     @RequiresApi(api = Build.VERSION_CODES.O)
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -235,7 +256,6 @@ public class MainActivity extends AppCompatActivity {
         cell_count_value = -1;
 
         rawImage = new Mat();
-        matImage = new Mat();
 
         //Setup Image View
         imageView = findViewById(R.id.image);
@@ -371,36 +391,11 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        //Setup Seekbar and button event listeners
-
-//        threshold.setMin(1);
-//        threshold.setMax(255);
-//        threshold.setProgress(50);
-//
-//        threshold.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
-//            @Override
-//            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-//                threshold_value = progress;
-//                threshold_image(threshold_value);
-//                setImageView(currentPhotoPath);
-//            }
-//
-//            @Override
-//            public void onStartTrackingTouch(SeekBar seekBar) {
-//
-//            }
-//
-//            @Override
-//            public void onStopTrackingTouch(SeekBar seekBar) {
-//                Toast.makeText(MainActivity.this, "Threshold value set : " + threshold_value, Toast.LENGTH_SHORT).show();
-//            }
-//        });
-
-
         clear_memory.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 clearBuffer();
+                cells_count.setText("Cell Count: -1");
             }
         });
 
@@ -410,48 +405,16 @@ public class MainActivity extends AppCompatActivity {
                 dispatchTakePictureIntent();
             }
         });
-        //imageView.setRotation(90);
-
-        // TODO Use this for setting image after drawing bounding boxes on the detected cells
-//        apply_threshold_button.setOnClickListener(new View.OnClickListener() {
-//            @Override
-//            public void onClick(View v) {
-//                //Call OpenCV method and pass it the matImage obtained from the camera
-//                //Toast.makeText(MainActivity.this, "Implement OpenCV Detection", Toast.LENGTH_SHORT).show();
-//
-//                if (!currentPhotoPath.equals("Not Set")) {
-//
-//                    if(rawImage.empty())
-//                    {
-//                        rawImage = imread(currentPhotoPath);
-//                    }
-//                        matImage = rawImage;
-//
-//                    threshold_image(threshold_value);
-//                    setImageView(currentPhotoPath);
-//                    Toast.makeText(MainActivity.this, "Applied Threshold : " + threshold_value, Toast.LENGTH_SHORT).show();
-//                    TextView cells_count = (TextView)findViewById(R.id.cell_count);
-//                    cells_count.setText("Cell Count: " + cell_count_value);
-//                }
-//                else
-//                {
-//                    Toast.makeText(MainActivity.this, "Image buffer empty, take a picture!", Toast.LENGTH_SHORT).show();
-//                }
-//
-//
-//            }
-//        });
 
         count_cells.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                cell_count_value = get_cells_count();
-                setImageView(currentPhotoPath);
+                get_cells_count();
             }
         });
     }
 
-    private int get_cells_count() {
+    private void get_cells_count() {
 
         // Old template matching code
 
@@ -534,12 +497,10 @@ public class MainActivity extends AppCompatActivity {
         KeyPoint[] vals = keypoint.toArray();
 
         // Set outputs
-        Log.i("SimpleBlobDetector", "SBD Cell count: " + vals.length);
-        cells_count.setText("Cell Count: " + vals.length);
+
         Mat markedImage = rawImage.clone();
 
-        //Features2d.drawKeypoints(rawImage, keypoint, markedImage, new Scalar(2,254,255),Features2d.DrawMatchesFlags_DRAW_RICH_KEYPOINTS); // Draw Red boxes < - This works, disabling to implement a custom marker
-
+        // Custom image marking (drawing detected keypoints on a new temporary image)
         int counter = 0;
         for (KeyPoint point : keypoint.toArray()) {
             Imgproc.circle(markedImage, point.pt, (int) point.size * 3, new Scalar(255, 255, 0), 15);
@@ -554,15 +515,14 @@ public class MainActivity extends AppCompatActivity {
 
         }
 
+        currentPhotoPathMarked = currentPhotoPath + "marked.jpg";
 
-        imwrite(currentPhotoPath + "marked.jpg", markedImage);
-        setImageView(currentPhotoPath + "marked.jpg"); // TODO this isn't setting the correct image as the output. Needs fix
+        imwrite(currentPhotoPathMarked, markedImage);
 
-        // Draw on image
-        // Save to disk
-        // Change to updated image
+        setImageView(currentPhotoPathMarked);
 
-        return 0;
+        cells_count.setText("Cell Count: " + vals.length);
+
     }
 
 
@@ -582,68 +542,6 @@ public class MainActivity extends AppCompatActivity {
         }
 
     }
-
-    public void threshold_image(int threshold_value) {
-        try {
-            BitmapFactory.Options options = new BitmapFactory.Options();
-            options.inDither = true;
-            options.inPreferredConfig = Bitmap.Config.ARGB_8888;
-
-//            byte[] decodedString = Base64.decode(imageAsBase64, Base64.DEFAULT);
-//            Bitmap image = BitmapFactory.decodeByteArray(decodedString, 0, decodedString.length);
-//
-//
-////      Bitmap image = decodeSampledBitmapFromFile(imageurl, 2000, 2000);
-//            int l = CvType.CV_8UC1; //8-bit grey scale image
-//            Mat matImage = new Mat();
-//            Utils.bitmapToMat(image, matImage);
-
-            Mat grayImage = new Mat();
-            // Imgproc.cvtColor(matImage, matImageGrey, Imgproc.COLOR_BGR2GRAY);
-
-            Imgproc.cvtColor(matImage, grayImage, Imgproc.COLOR_BGR2GRAY);
-
-            Imgproc.threshold(grayImage, grayImage, threshold_value, 255, Imgproc.THRESH_BINARY);
-
-//foolfilled
-//            Rect rect = null;
-//            Point flood = new Point(10, 10);
-//            Scalar lowerDiff = new Scalar(10, 10, 10);
-//            Scalar upperDiff = new Scalar(10, 10, 10);
-//            Mat floodfilled = Mat.zeros(grayImage.rows() + 2, grayImage.cols() + 2, CvType.CV_8U);
-//            Imgproc.floodFill(grayImage, floodfilled, new Point(0, 0), new Scalar(255), new Rect(), new Scalar(0), new Scalar(0), 4 + (255 << 8) + Imgproc.FLOODFILL_MASK_ONLY);
-//            Core.subtract(floodfilled, Scalar.all(0), floodfilled);
-//
-//            Rect roi = new Rect(1, 1, grayImage.cols() - 2, grayImage.rows() - 2);
-//            Mat temp = new Mat();
-//            floodfilled.submat(roi).copyTo(temp);
-
-            imwrite(currentPhotoPath, grayImage);
-            //grayImage.release();
-            SimpleBlobDetector_Params params = new SimpleBlobDetector_Params();
-//            params.set_filterByConvexity(true);
-//            params.set_minConvexity(0.2f);
-//            params.set_maxConvexity(1.0f);
-//            params.set_minThreshold(1);
-//            params.set_maxThreshold(255);
-            params.set_filterByCircularity(true);
-            params.set_minCircularity(0.5f);
-            SimpleBlobDetector detector = SimpleBlobDetector.create(params);
-
-            MatOfKeyPoint keypoint = new MatOfKeyPoint();
-
-            detector.detect(grayImage, keypoint);
-
-            KeyPoint[] vals = keypoint.toArray();
-
-            Log.i("SimpleBlobDetector", "SBD Cell count: " + vals.length);
-
-            //successCallback.invoke( "Cell Count : " + vals.length);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-
 
     private BaseLoaderCallback mLoaderCallback = new BaseLoaderCallback(this) {
         @Override
