@@ -39,6 +39,7 @@ import org.opencv.core.Point;
 import org.opencv.core.Rect;
 import org.opencv.core.Scalar;
 //import org.opencv.features2d.FeatureDetector;
+import org.opencv.features2d.Features2d;
 import org.opencv.features2d.SimpleBlobDetector;
 import org.opencv.features2d.SimpleBlobDetector_Params;
 import org.opencv.imgcodecs.Imgcodecs;
@@ -49,6 +50,7 @@ import java.io.IOException;
 
 import static org.opencv.imgcodecs.Imgcodecs.imread;
 import static org.opencv.imgcodecs.Imgcodecs.imwrite;
+import static org.opencv.imgproc.Imgproc.FONT_HERSHEY_SIMPLEX;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -494,36 +496,30 @@ public class MainActivity extends AppCompatActivity {
         // Get param values
         SimpleBlobDetector_Params params = new SimpleBlobDetector_Params();
 
-        if(minThresholdBtn.isChecked())
-        {
+        if (minThresholdBtn.isChecked()) {
             params.set_minThreshold(minThresholdValue);
         }
 
-        if(maxThresholdBtn.isChecked())
-        {
+        if (maxThresholdBtn.isChecked()) {
             params.set_maxThreshold(maxThresholdValue);
         }
 
-        if(filterByAreaBtn.isChecked())
-        {
+        if (filterByAreaBtn.isChecked()) {
             params.set_filterByArea(true);
             params.set_minArea(minAreaValue);
         }
 
-        if(filterByCircularityBtn.isChecked())
-        {
+        if (filterByCircularityBtn.isChecked()) {
             params.set_filterByCircularity(true);
             params.set_minCircularity(minCircularityValue);
         }
 
-        if(filterByConvexityBtn.isChecked())
-        {
+        if (filterByConvexityBtn.isChecked()) {
             params.set_filterByConvexity(true);
             params.set_minConvexity(minConvexityValue);
         }
 
-        if(filterByInertiaBtn.isChecked())
-        {
+        if (filterByInertiaBtn.isChecked()) {
             params.set_filterByInertia(true);
             params.set_minInertiaRatio(minInertiaRatioValue);
         }
@@ -533,14 +529,34 @@ public class MainActivity extends AppCompatActivity {
 
         MatOfKeyPoint keypoint = new MatOfKeyPoint();
 
-        detector.detect(rawImage, keypoint); // TODO is this the right image?
+        detector.detect(rawImage, keypoint);
 
         KeyPoint[] vals = keypoint.toArray();
 
         // Set outputs
         Log.i("SimpleBlobDetector", "SBD Cell count: " + vals.length);
         cells_count.setText("Cell Count: " + vals.length);
+        Mat markedImage = rawImage.clone();
 
+        //Features2d.drawKeypoints(rawImage, keypoint, markedImage, new Scalar(2,254,255),Features2d.DrawMatchesFlags_DRAW_RICH_KEYPOINTS); // Draw Red boxes < - This works, disabling to implement a custom marker
+
+        int counter = 0;
+        for (KeyPoint point : keypoint.toArray()) {
+            Imgproc.circle(markedImage, point.pt, (int) point.size * 3, new Scalar(255, 255, 0), 15);
+            Imgproc.putText(markedImage,                          // Matrix obj of the image
+                    String.valueOf(++counter),          // Text to be added
+                    new Point(point.pt.x, point.pt.y - 75),               // point
+                    FONT_HERSHEY_SIMPLEX,      // font face
+                    3,                               // font scale
+                    new Scalar(255, 255, 0),             // Scalar object for color
+                    5                                // Thickness
+            );
+
+        }
+
+
+        imwrite(currentPhotoPath + "marked.jpg", markedImage);
+        setImageView(currentPhotoPath + "marked.jpg"); // TODO this isn't setting the correct image as the output. Needs fix
 
         // Draw on image
         // Save to disk
@@ -690,7 +706,7 @@ public class MainActivity extends AppCompatActivity {
             try {
                 if (!currentPhotoPath.equals("Not Set"))
                     rawImage = imread(currentPhotoPath);
-                imwrite(currentPhotoPath, rawImage);
+                imwrite(currentPhotoPath, rawImage); // required to set image to portrait mode?
                 setImageView(currentPhotoPath);
             } catch (Exception e) {
                 e.printStackTrace();
