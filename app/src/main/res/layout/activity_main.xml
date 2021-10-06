@@ -55,6 +55,13 @@
                 android:max="255"
                 android:visibility="invisible" />
 
+            <TextView
+                android:id="@+id/minThresholdValLbl"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:ems="10"
+                 />
+
         </TableRow>
 
         <TableRow
@@ -74,7 +81,12 @@
                 android:layout_height="match_parent"
                 android:max="255"
                 android:visibility="invisible" />
-
+            <TextView
+                android:id="@+id/maxThresholdValLbl"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:ems="10"
+                 />
         </TableRow>
 
         <TableRow
@@ -94,6 +106,12 @@
                 android:layout_height="match_parent"
                 android:max="10000"
                 android:visibility="invisible" />
+            <TextView
+                android:id="@+id/filterByAreaValLbl"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:ems="10"
+                />
         </TableRow>
 
         <TableRow
@@ -113,6 +131,12 @@
                 android:layout_height="match_parent"
                 android:max="100"
                 android:visibility="invisible" />
+            <TextView
+                android:id="@+id/filterByCircularityValLbl"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:ems="10"
+                 />
         </TableRow>
 
         <TableRow
@@ -132,6 +156,12 @@
                 android:layout_height="match_parent"
                 android:max="100"
                 android:visibility="invisible" />
+            <TextView
+                android:id="@+id/filterByConvexityValLbl"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:ems="10"
+                />
         </TableRow>
 
         <TableRow
@@ -151,6 +181,12 @@
                 android:layout_height="match_parent"
                 android:max="100"
                 android:visibility="invisible" />
+            <TextView
+                android:id="@+id/filterByInertiaValLbl"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:ems="10"
+                />
         </TableRow>
     </TableLayout>
 

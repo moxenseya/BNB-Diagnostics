@@ -20,29 +20,23 @@ import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.CheckBox;
+import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.Toast;
-import android.app.Fragment;
 
 import org.opencv.android.BaseLoaderCallback;
 import org.opencv.android.LoaderCallbackInterface;
 import org.opencv.android.OpenCVLoader;
-import org.opencv.android.Utils;
-import org.opencv.core.Core;
-import org.opencv.core.CvType;
 import org.opencv.core.KeyPoint;
 import org.opencv.core.Mat;
 import org.opencv.core.MatOfKeyPoint;
 import org.opencv.core.Point;
-import org.opencv.core.Rect;
 import org.opencv.core.Scalar;
 //import org.opencv.features2d.FeatureDetector;
-import org.opencv.features2d.Features2d;
 import org.opencv.features2d.SimpleBlobDetector;
 import org.opencv.features2d.SimpleBlobDetector_Params;
-import org.opencv.imgcodecs.Imgcodecs;
 import org.opencv.imgproc.Imgproc;
 
 import java.io.File;
@@ -70,6 +64,13 @@ public class MainActivity extends AppCompatActivity {
     float minConvexityValue;
     float minInertiaRatioValue;
 
+    CheckBox minThresholdBtn;
+    CheckBox maxThresholdBtn;
+    CheckBox filterByAreaBtn;
+    CheckBox filterByCircularityBtn;
+    CheckBox filterByConvexityBtn;
+    CheckBox filterByInertiaBtn;
+
     SeekBar minThresholdVal;
     SeekBar maxThresholdVal;
     SeekBar filterByAreaVal;
@@ -77,12 +78,12 @@ public class MainActivity extends AppCompatActivity {
     SeekBar filterByConvexityVal;
     SeekBar filterByInertiaVal;
 
-    CheckBox minThresholdBtn;
-    CheckBox maxThresholdBtn;
-    CheckBox filterByAreaBtn;
-    CheckBox filterByCircularityBtn;
-    CheckBox filterByConvexityBtn;
-    CheckBox filterByInertiaBtn;
+    TextView minThresholdValLabel;
+    TextView maxThresholdValLabel;
+    TextView filterByAreaValLabel;
+    TextView filterByCircularityValLabel;
+    TextView filterByConvexityValLabel;
+    TextView filterByInertiaValLabel;
 
     TextView cells_count;
 
@@ -95,6 +96,13 @@ public class MainActivity extends AppCompatActivity {
 
 
     private void clearBuffer() {
+
+        if(currentPhotoPath == null)
+        {
+            return;
+        }
+
+
         File fdelete = new File(currentPhotoPath);
         if (!currentPhotoPath.equals("Not Set")) {
             if (fdelete.exists()) {
@@ -111,6 +119,11 @@ public class MainActivity extends AppCompatActivity {
             }
         } else {
             Toast.makeText(this, "Image buffer is empty, nothing to delete", Toast.LENGTH_SHORT).show();
+        }
+
+        if(currentPhotoPathMarked == null)
+        {
+            return;
         }
 
         File fdeleteMarked = new File(currentPhotoPathMarked);
@@ -287,12 +300,27 @@ public class MainActivity extends AppCompatActivity {
         filterByConvexityVal = findViewById(R.id.filterByConvexityVal);
         filterByInertiaVal = findViewById(R.id.filterByInertiaVal);
 
+        minThresholdValLabel = findViewById(R.id.minThresholdValLbl);
+        maxThresholdValLabel = findViewById(R.id.maxThresholdValLbl);
+        filterByAreaValLabel = findViewById(R.id.filterByAreaValLbl);
+        filterByCircularityValLabel = findViewById(R.id.filterByCircularityValLbl);
+        filterByConvexityValLabel = findViewById(R.id.filterByConvexityValLbl);
+        filterByInertiaValLabel = findViewById(R.id.filterByInertiaValLbl);
+
+        minThresholdValLabel.setText(String.valueOf(minThresholdValue));
+        maxThresholdValLabel.setText(String.valueOf(maxThresholdValue));
+        filterByAreaValLabel.setText(String.valueOf(minAreaValue));
+        filterByCircularityValLabel.setText(String.valueOf(minCircularityValue));
+        filterByConvexityValLabel.setText(String.valueOf(minConvexityValue));
+        filterByInertiaValLabel.setText(String.valueOf(minInertiaRatioValue));
+
         // SeekBar Handlers
 
         minThresholdVal.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int i, boolean b) {
                 minThresholdValue = i;
+                minThresholdValLabel.setText(String.valueOf(minThresholdValue));
             }
 
             @Override
@@ -310,6 +338,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onProgressChanged(SeekBar seekBar, int i, boolean b) {
                 maxThresholdValue = i;
+                maxThresholdValLabel.setText(String.valueOf(maxThresholdValue));
             }
 
             @Override
@@ -327,6 +356,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onProgressChanged(SeekBar seekBar, int i, boolean b) {
                 minAreaValue = i;
+                filterByAreaValLabel.setText(String.valueOf(minAreaValue));
             }
 
             @Override
@@ -344,6 +374,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onProgressChanged(SeekBar seekBar, int i, boolean b) {
                 minCircularityValue = (float) i / 100;
+                filterByCircularityValLabel.setText(String.valueOf(minCircularityValue));
             }
 
             @Override
@@ -361,6 +392,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onProgressChanged(SeekBar seekBar, int i, boolean b) {
                 minConvexityValue = (float) i / 100;
+                filterByConvexityValLabel.setText(String.valueOf(minConvexityValue));
             }
 
             @Override
@@ -378,6 +410,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onProgressChanged(SeekBar seekBar, int i, boolean b) {
                 minInertiaRatioValue = (float) i / 100;
+                filterByInertiaValLabel.setText(String.valueOf(minInertiaRatioValue));
             }
 
             @Override
@@ -455,6 +488,11 @@ public class MainActivity extends AppCompatActivity {
 
         // TODO New SimpleBlobDetector mode
 
+        if(rawImage.empty())
+        {
+            Toast.makeText(MainActivity.this, "Image not available. Take an image first and try again.", Toast.LENGTH_LONG).show();
+            return;
+        }
 
         // Get param values
         SimpleBlobDetector_Params params = new SimpleBlobDetector_Params();
