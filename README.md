@@ -1,5 +1,5 @@
 # BNB-Diagnostics
-Portable cell counting application for Android devices, using the OpenCV library (SimpleBlobDetector). For the ** Bio-nanotechnology and Biomaterials lab, NYIT ** : http://www.ilyaslab.com/
+Portable cell counting application for Android devices, using the OpenCV library (SimpleBlobDetector). For the **Bio-nanotechnology and Biomaterials lab, NYIT** : http://www.ilyaslab.com/
 
 # Installation
 Just load the APK file to android device, launch using your favorite file explorer, and install. (Might need to enable install from unknown sources)
