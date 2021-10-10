@@ -11,6 +11,6 @@ Just load the APK file to android device, launch using your favorite file explor
 4. Run detection.
 
 # Resources
-https://developer.android.com/
-https://opencv.org/android/
-https://github.com/quickbirdstudios/opencv-android
+- https://developer.android.com/
+- https://opencv.org/android/
+- https://github.com/quickbirdstudios/opencv-android
