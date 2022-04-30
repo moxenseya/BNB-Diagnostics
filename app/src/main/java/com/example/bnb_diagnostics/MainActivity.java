@@ -1,10 +1,5 @@
 package com.example.bnb_diagnostics;
 
-import androidx.annotation.RequiresApi;
-import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.app.ActivityCompat;
-import androidx.core.content.FileProvider;
-
 import android.Manifest;
 import android.content.Intent;
 import android.content.pm.PackageManager;
@@ -20,11 +15,19 @@ import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.CheckBox;
-import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.Toast;
+
+import androidx.annotation.NonNull;
+import androidx.annotation.RequiresApi;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.FileProvider;
+
+import java.io.File;
+import java.io.IOException;
 
 import org.opencv.android.BaseLoaderCallback;
 import org.opencv.android.LoaderCallbackInterface;
@@ -34,13 +37,9 @@ import org.opencv.core.Mat;
 import org.opencv.core.MatOfKeyPoint;
 import org.opencv.core.Point;
 import org.opencv.core.Scalar;
-//import org.opencv.features2d.FeatureDetector;
 import org.opencv.features2d.SimpleBlobDetector;
 import org.opencv.features2d.SimpleBlobDetector_Params;
 import org.opencv.imgproc.Imgproc;
-
-import java.io.File;
-import java.io.IOException;
 
 import static org.opencv.imgcodecs.Imgcodecs.imread;
 import static org.opencv.imgcodecs.Imgcodecs.imwrite;
@@ -48,44 +47,43 @@ import static org.opencv.imgproc.Imgproc.FONT_HERSHEY_SIMPLEX;
 
 public class MainActivity extends AppCompatActivity {
 
+    Bitmap myBitmap;
     ImageView imageView;
+    Mat rawImage;
     String currentPhotoPath;
     String currentPhotoPathMarked;
-    Bitmap myBitmap;
-    Mat rawImage;
 
-    int threshold_value;
-    int cell_count_value;
+    int cellCountValue;
+    int thresholdValue;
 
-    int minThresholdValue;
-    int maxThresholdValue;
-    int minAreaValue;
     float minCircularityValue;
     float minConvexityValue;
     float minInertiaRatioValue;
+    int maxThresholdValue;
+    int minAreaValue;
+    int minThresholdValue;
 
-    CheckBox minThresholdBtn;
-    CheckBox maxThresholdBtn;
     CheckBox filterByAreaBtn;
     CheckBox filterByCircularityBtn;
     CheckBox filterByConvexityBtn;
     CheckBox filterByInertiaBtn;
+    CheckBox maxThresholdBtn;
+    CheckBox minThresholdBtn;
 
-    SeekBar minThresholdVal;
-    SeekBar maxThresholdVal;
     SeekBar filterByAreaVal;
     SeekBar filterByCircularityVal;
     SeekBar filterByConvexityVal;
     SeekBar filterByInertiaVal;
+    SeekBar maxThresholdVal;
+    SeekBar minThresholdVal;
 
-    TextView minThresholdValLabel;
-    TextView maxThresholdValLabel;
+    TextView cellCount;
     TextView filterByAreaValLabel;
     TextView filterByCircularityValLabel;
     TextView filterByConvexityValLabel;
     TextView filterByInertiaValLabel;
-
-    TextView cells_count;
+    TextView maxThresholdValLabel;
+    TextView minThresholdValLabel;
 
     static {
         if (!OpenCVLoader.initDebug()) {
@@ -94,22 +92,19 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-
     private void clearBuffer() {
 
-        if(currentPhotoPath == null)
-        {
+        if (currentPhotoPath == null) {
             return;
         }
 
-
         File fdelete = new File(currentPhotoPath);
-        if (!currentPhotoPath.equals("Not Set")) {
+        if (!currentPhotoPath.isEmpty()) {
             if (fdelete.exists()) {
                 if (fdelete.delete()) {
                     Toast.makeText(MainActivity.this, "Buffer cleaned", Toast.LENGTH_SHORT).show();
                     resetImageView();
-                    currentPhotoPath = "Not Set";
+                    currentPhotoPath = "";
                     if (!rawImage.empty())
                         rawImage.release();
 
@@ -121,18 +116,17 @@ public class MainActivity extends AppCompatActivity {
             Toast.makeText(this, "Image buffer is empty, nothing to delete", Toast.LENGTH_SHORT).show();
         }
 
-        if(currentPhotoPathMarked == null)
-        {
+        if (currentPhotoPathMarked == null) {
             return;
         }
 
         File fdeleteMarked = new File(currentPhotoPathMarked);
-        if (!currentPhotoPathMarked.equals("Not Set")) {
+        if (!currentPhotoPathMarked.isEmpty()) {
             if (fdeleteMarked.exists()) {
                 if (fdeleteMarked.delete()) {
                     Toast.makeText(MainActivity.this, "Marked buffer cleaned", Toast.LENGTH_SHORT).show();
                     resetImageView();
-                    currentPhotoPathMarked = "Not Set";
+                    currentPhotoPathMarked = "";
                     if (!rawImage.empty())
                         rawImage.release();
 
@@ -146,43 +140,24 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void onRequestPermissionsResult(int requestCode,
-                                           String permissions[], int[] grantResults) {
-        switch (requestCode) {
-            case 1: {
-
-                // If request is cancelled, the result arrays are empty.
-                if (grantResults.length > 0
-                        && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-
-                    // permission was granted, yay! Do the
-                    // contacts-related task you need to do.
-                } else {
-
-                    // permission denied, boo! Disable the
-                    // functionality that depends on this permission.
-                    Toast.makeText(MainActivity.this, "Permission denied to read your External storage. Please grant permissions and Try again.", Toast.LENGTH_SHORT).show();
-                    Handler handler = new Handler();
-                    handler.postDelayed(new Runnable() {
-                        public void run() {
-                            // Actions to do after 2 seconds
-                            finish();
-
-                        }
-                    }, 2000);
-
-
-                }
+                                           @NonNull String[] permissions, @NonNull int[] grantResults) {
+        if (requestCode == 1) {
+            // If request is cancelled, the result arrays are empty.
+            if (grantResults.length <= 0 || grantResults[0] != PackageManager.PERMISSION_GRANTED) {
+                Toast.makeText(MainActivity.this, "Permission denied to read your External storage. Please grant permissions and Try again.", Toast.LENGTH_SHORT).show();
+                Handler handler = new Handler();
+                // Actions to do after 2 seconds
+                handler.postDelayed(this::finish, 2000);
             }
-
-            // other 'case' lines to check for other
-            // permissions this app might request
         }
     }
 
-    private void check_permissions() {
-        ActivityCompat.requestPermissions(MainActivity.this,
-                new String[]{Manifest.permission.READ_EXTERNAL_STORAGE, Manifest.permission.WRITE_EXTERNAL_STORAGE, Manifest.permission.CAMERA},
-                1);
+    private void checkPermissions() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN) {
+            ActivityCompat.requestPermissions(MainActivity.this,
+                    new String[]{Manifest.permission.READ_EXTERNAL_STORAGE, Manifest.permission.WRITE_EXTERNAL_STORAGE, Manifest.permission.CAMERA},
+                    1);
+        }
 
     }
 
@@ -263,10 +238,9 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-
-        currentPhotoPath = "Not Set";
-        threshold_value = 1;
-        cell_count_value = -1;
+        currentPhotoPath = "";
+        thresholdValue = 1;
+        cellCountValue = -1;
 
         rawImage = new Mat();
 
@@ -275,15 +249,14 @@ public class MainActivity extends AppCompatActivity {
         resetImageView();
 
         //Check and Request Permissions if Needed
-        check_permissions();
+        checkPermissions();
 
         //Setup buttons and other UI elements
-        Button capture_button = findViewById(R.id.capture_button);
-        //Button apply_threshold_button = findViewById(R.id.apply_threshold);
-        Button clear_memory = findViewById(R.id.clear_memory);
-        Button count_cells = findViewById(R.id.count_cells);
+        Button captureButton = findViewById(R.id.captureButton);
+        Button clearMemory = findViewById(R.id.clearMemory);
+        Button countCells = findViewById(R.id.countCells);
 
-        cells_count = (TextView)findViewById(R.id.cell_count); // Text to display cells counted result
+        cellCount = (TextView) findViewById(R.id.cellCount);
 
         minThresholdBtn = findViewById(R.id.minThresholdBtn);
         maxThresholdBtn = findViewById(R.id.maxThresholdBtn);
@@ -424,72 +397,19 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        clear_memory.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                clearBuffer();
-                cells_count.setText("Cell Count: -1");
-            }
+        clearMemory.setOnClickListener(v -> {
+            clearBuffer();
+            cellCount.setText("Cell Count: -1");
         });
 
-        capture_button.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                dispatchTakePictureIntent();
-            }
-        });
+        captureButton.setOnClickListener(v -> dispatchTakePictureIntent());
 
-        count_cells.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                get_cells_count();
-            }
-        });
+        countCells.setOnClickListener(v -> getCellsCount());
     }
 
-    private void get_cells_count() {
+    private void getCellsCount() {
 
-        // Old template matching code
-
-//        int match_method = 0;
-//        Mat base_image = imread(currentPhotoPath);
-//        Mat template = new Mat();
-//        try {
-//            template = Utils.loadResource(this, R.drawable.template_cell, 1);
-//        } catch (IOException e) {
-//            e.printStackTrace();
-//        }
-//
-//        int result_cols = base_image.cols() - base_image.cols() + 1;
-//        int result_rows = template.rows() - template.rows() + 1;
-//        Mat result = new Mat(result_rows, result_cols, CvType.CV_32FC1);
-//
-//        Imgproc.matchTemplate(base_image, template, result, match_method);
-//        Core.normalize(result, result, 0, 1, Core.NORM_MINMAX, -1, new Mat());
-//
-//        Core.MinMaxLocResult mmr = Core.minMaxLoc(result);
-//
-//        Point matchLoc;
-//        if (match_method == Imgproc.TM_SQDIFF || match_method == Imgproc.TM_SQDIFF_NORMED) {
-//            matchLoc = mmr.minLoc;
-//        } else {
-//            matchLoc = mmr.maxLoc;
-//        }
-//
-//        // / Show me what you got
-//        Imgproc.rectangle(base_image, matchLoc, new Point(matchLoc.x + template.cols(),
-//                matchLoc.y + template.rows()), new Scalar(0, 255, 0));
-//
-//        imwrite(currentPhotoPath, base_image);
-//        base_image.release();
-//        template.release();
-//
-//        return result_cols;
-
-        // TODO New SimpleBlobDetector mode
-
-        if(rawImage.empty())
-        {
+        if (rawImage.empty()) {
             Toast.makeText(MainActivity.this, "Image not available. Take an image first and try again.", Toast.LENGTH_LONG).show();
             return;
         }
@@ -559,7 +479,7 @@ public class MainActivity extends AppCompatActivity {
 
         setImageView(currentPhotoPathMarked);
 
-        cells_count.setText("Cell Count: " + vals.length);
+        cellCount.setText("Cell Count: " + vals.length);
 
     }
 
@@ -571,7 +491,7 @@ public class MainActivity extends AppCompatActivity {
 
     private void setImageView(String path) {
         if (imageView != null) {
-            if (!path.equals("Not Set")) {
+            if (!path.isEmpty()) {
                 myBitmap = BitmapFactory.decodeFile(path);
                 imageView.setImageBitmap(myBitmap);
             } else {
@@ -581,18 +501,13 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
-    private BaseLoaderCallback mLoaderCallback = new BaseLoaderCallback(this) {
+    private final BaseLoaderCallback mLoaderCallback = new BaseLoaderCallback(this) {
         @Override
         public void onManagerConnected(int status) {
-            switch (status) {
-                case LoaderCallbackInterface.SUCCESS: {
-                    Log.i("OpenCV", "OpenCV loaded successfully");
-                }
-                break;
-                default: {
-                    super.onManagerConnected(status);
-                }
-                break;
+            if (status == LoaderCallbackInterface.SUCCESS) {
+                Log.i("OpenCV", "OpenCV loaded successfully");
+            } else {
+                super.onManagerConnected(status);
             }
         }
     };
@@ -640,7 +555,7 @@ public class MainActivity extends AppCompatActivity {
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         if (requestCode == REQUEST_IMAGE_CAPTURE && resultCode == RESULT_OK) {
             try {
-                if (!currentPhotoPath.equals("Not Set"))
+                if (!currentPhotoPath.isEmpty())
                     rawImage = imread(currentPhotoPath);
                 imwrite(currentPhotoPath, rawImage); // required to set image to portrait mode?
                 setImageView(currentPhotoPath);

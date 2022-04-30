@@ -11,19 +11,19 @@
         android:orientation="horizontal">
 
         <Button
-            android:id="@+id/capture_button"
+            android:id="@+id/captureButton"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Take an Image" />
 
         <Button
-            android:id="@+id/clear_memory"
+            android:id="@+id/clearMemory"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Clear Memory" />
 
         <Button
-            android:id="@+id/count_cells"
+            android:id="@+id/countCells"
             android:layout_width="155dp"
             android:layout_height="wrap_content"
             android:text="Detect Cells" />
@@ -191,7 +191,7 @@
     </TableLayout>
 
     <TextView
-        android:id="@+id/cell_count"
+        android:id="@+id/cellCount"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:textSize="100px"
