@@ -5,6 +5,7 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.icu.util.Output;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -27,7 +28,11 @@ import androidx.core.app.ActivityCompat;
 import androidx.core.content.FileProvider;
 
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 
 import org.opencv.android.BaseLoaderCallback;
 import org.opencv.android.LoaderCallbackInterface;
@@ -47,7 +52,10 @@ import static org.opencv.imgproc.Imgproc.FONT_HERSHEY_SIMPLEX;
 
 public class MainActivity extends AppCompatActivity {
 
-    Bitmap myBitmap;
+    static final int REQUEST_TAKE_PHOTO = 1; // For capturing images from camera
+    static final int REQUEST_IMAGE_GET = 2; // For loading images from storage
+
+    Bitmap bitmapToLoad;
     ImageView imageView;
     Mat rawImage;
     String currentPhotoPath;
@@ -137,6 +145,8 @@ public class MainActivity extends AppCompatActivity {
         } else {
             Toast.makeText(this, "Marked buffer is empty, nothing to delete", Toast.LENGTH_SHORT).show();
         }
+
+        cellCount.setText("Cell Count: -1");
     }
 
     public void onRequestPermissionsResult(int requestCode,
@@ -253,6 +263,7 @@ public class MainActivity extends AppCompatActivity {
 
         //Setup buttons and other UI elements
         Button captureButton = findViewById(R.id.captureButton);
+        Button loadButton = findViewById(R.id.loadButton);
         Button clearMemory = findViewById(R.id.clearMemory);
         Button countCells = findViewById(R.id.countCells);
 
@@ -397,12 +408,11 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        clearMemory.setOnClickListener(v -> {
-            clearBuffer();
-            cellCount.setText("Cell Count: -1");
-        });
-
         captureButton.setOnClickListener(v -> dispatchTakePictureIntent());
+
+        loadButton.setOnClickListener(v -> dispatchLoadPictureIntent());
+
+        clearMemory.setOnClickListener(v -> clearBuffer());
 
         countCells.setOnClickListener(v -> getCellsCount());
     }
@@ -492,8 +502,8 @@ public class MainActivity extends AppCompatActivity {
     private void setImageView(String path) {
         if (imageView != null) {
             if (!path.isEmpty()) {
-                myBitmap = BitmapFactory.decodeFile(path);
-                imageView.setImageBitmap(myBitmap);
+                bitmapToLoad = BitmapFactory.decodeFile(path);
+                imageView.setImageBitmap(bitmapToLoad);
             } else {
                 resetImageView();
             }
@@ -524,9 +534,6 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-
-    static final int REQUEST_TAKE_PHOTO = 1;
-
     private void dispatchTakePictureIntent() {
         Intent takePictureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
         // Ensure that there's a camera activity to handle the intent
@@ -549,11 +556,65 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    static final int REQUEST_IMAGE_CAPTURE = 1;
+    private void dispatchLoadPictureIntent()
+    {
+        Intent loadPictureIntent = new Intent(Intent.ACTION_GET_CONTENT);
+        loadPictureIntent.setType("image/*");
+        // Ensure that there's a camera activity to handle the intent
+        if (loadPictureIntent.resolveActivity(getPackageManager()) != null) {
+            // Create the File where the photo should go
+            File photoFile = null;
+            try {
+                photoFile = createImageFile();
+            } catch (IOException ex) {
+                // Error occurred while creating the File
+            }
+            // Continue only if the File was successfully created
+            if (photoFile != null) {
+                Uri photoURI = FileProvider.getUriForFile(this,
+                        "com.example.bnb_diagnostics.fileProvider",
+                        photoFile);
+                loadPictureIntent.putExtra(MediaStore.EXTRA_OUTPUT, photoURI);
+                startActivityForResult(loadPictureIntent, REQUEST_IMAGE_GET);
+            }
+        }
+    }
+
+    public static void copyStream(InputStream input, OutputStream output)
+            throws IOException {
+
+        byte[] buffer = new byte[1024];
+        int bytesRead;
+        while ((bytesRead = input.read(buffer)) != -1) {
+            output.write(buffer, 0, bytesRead);
+        }
+    }
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        if (requestCode == REQUEST_IMAGE_CAPTURE && resultCode == RESULT_OK) {
+
+        if(requestCode == REQUEST_IMAGE_GET && resultCode == RESULT_OK)
+        {
+            try {
+                InputStream inputStream = getContentResolver().openInputStream(data.getData());
+                FileOutputStream outputStream = new FileOutputStream(currentPhotoPath);
+                copyStream(inputStream, outputStream);
+            } catch (FileNotFoundException e) {
+                e.printStackTrace();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
+            try {
+                if (!currentPhotoPath.isEmpty())
+                    rawImage = imread(currentPhotoPath);
+                imwrite(currentPhotoPath, rawImage); // required to set image to portrait mode?
+                setImageView(currentPhotoPath);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+        else if (requestCode == REQUEST_TAKE_PHOTO && resultCode == RESULT_OK) {
             try {
                 if (!currentPhotoPath.isEmpty())
                     rawImage = imread(currentPhotoPath);

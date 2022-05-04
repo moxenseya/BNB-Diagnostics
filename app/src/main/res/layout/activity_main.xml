@@ -14,19 +14,25 @@
             android:id="@+id/captureButton"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Take an Image" />
+            android:text="Capture" />
+
+        <Button
+            android:id="@+id/loadButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Load" />
 
         <Button
             android:id="@+id/clearMemory"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Clear Memory" />
+            android:text="Clear" />
 
         <Button
             android:id="@+id/countCells"
-            android:layout_width="155dp"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Detect Cells" />
+            android:text="Detect" />
 
     </LinearLayout>
 
